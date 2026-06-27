@@ -9,8 +9,8 @@ use cw2::set_contract_version;
 use crate::error::ContractError;
 use crate::merkle::{leaf_hash, verify};
 use crate::msg::{
-    CampaignResponse, ExecuteMsg, HasClaimedResponse, InstantiateMsg, NextCampaignIdResponse,
-    QueryMsg, VerifyClaimResponse,
+    CampaignResponse, ExecuteMsg, HasClaimedResponse, InstantiateMsg, MigrateMsg,
+    NextCampaignIdResponse, QueryMsg, VerifyClaimResponse,
 };
 use crate::state::{
     Campaign, CAMPAIGNS, CONTRACT_NAME, CONTRACT_VERSION, HAS_CLAIMED, NEXT_CAMPAIGN_ID,
@@ -227,7 +227,7 @@ fn query_verify_claim(
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn migrate(deps: DepsMut, _env: Env, _msg: Binary) -> Result<Response, ContractError> {
+pub fn migrate(deps: DepsMut, _env: Env, _msg: MigrateMsg) -> Result<Response, ContractError> {
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
     Ok(Response::new().add_attribute("action", "migrate"))
 }

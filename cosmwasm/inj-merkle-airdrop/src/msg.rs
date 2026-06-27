@@ -5,6 +5,9 @@ use cosmwasm_std::{Binary, Uint128};
 pub struct InstantiateMsg {}
 
 #[cw_serde]
+pub struct MigrateMsg {}
+
+#[cw_serde]
 pub enum ExecuteMsg {
     CreateCampaign {
         merkle_root: Binary,
