@@ -17,4 +17,4 @@ pub struct Campaign {
 
 pub const NEXT_CAMPAIGN_ID: Item<u64> = Item::new("next_campaign_id");
 pub const CAMPAIGNS: Map<u64, Campaign> = Map::new("campaigns");
-pub const HAS_CLAIMED: Map<(u64, String), bool> = Map::new("has_claimed");
+pub const HAS_CLAIMED: Map<String, bool> = Map::new("has_claimed");

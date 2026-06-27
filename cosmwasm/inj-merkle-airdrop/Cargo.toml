@@ -18,4 +18,4 @@ cw2 = "1.1"
 schemars = "0.8"
 serde = { version = "1.0", default-features = false, features = ["derive"] }
 thiserror = "1.0"
-tiny-keccak = { version = "2.0", features = ["keccak"] }
+sha3 = { version = "0.10", default-features = false }

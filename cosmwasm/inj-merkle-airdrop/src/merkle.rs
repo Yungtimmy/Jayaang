@@ -1,12 +1,10 @@
 use cosmwasm_std::{Binary, Uint128};
-use tiny_keccak::{Hasher, Keccak};
+use sha3::{Digest, Keccak256};
 
 fn keccak256(data: &[u8]) -> [u8; 32] {
-    let mut out = [0u8; 32];
-    let mut hasher = Keccak::v256();
+    let mut hasher = Keccak256::new();
     hasher.update(data);
-    hasher.finalize(&mut out);
-    out
+    hasher.finalize().into()
 }
 
 fn amount_to_bytes32(amount: Uint128) -> [u8; 32] {
