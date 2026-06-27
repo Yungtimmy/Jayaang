@@ -1,0 +1,11 @@
+{
+  "chainId": "injective-888",
+  "network": "testnet",
+  "contract": "inj1kjxp4unuru20zsktzssvzjluvgwgp5re9eprjw",
+  "codeId": 39654,
+  "label": "inj-merkle-airdrop",
+  "deployer": "inj12ms4zs769a6dynlhewfquesrzdnsmmjs6yuy2l",
+  "storeTx": "850594AB439F289F5BB6B37A433C06461D3D8DBB0924F09BF6E9B380B15633EC",
+  "instantiateTx": "F86BF807130CEAA0C64207706D8112477CDC2F2177AC99AAC1BEADFA12836E83",
+  "deployedAt": "2026-06-27"
+}
