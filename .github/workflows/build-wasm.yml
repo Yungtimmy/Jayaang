@@ -15,10 +15,14 @@ jobs:
 
       - name: Build with CosmWasm optimizer
         run: |
-          docker run --rm -v "${{ github.workspace }}/cosmwasm/inj-merkle-airdrop:/code" \
-            cosmwasm/optimizer:0.16.0
+          docker run --rm \
+            -v "${{ github.workspace }}/cosmwasm/inj-merkle-airdrop:/code" \
+            --mount type=volume,source=inj_merkle_airdrop_cache,target=/target \
+            --mount type=volume,source=registry_cache,target=/usr/local/cargo/registry \
+            cosmwasm/optimizer:0.17.0
+          ls -la cosmwasm/inj-merkle-airdrop/artifacts/
           mkdir -p cosmwasm/artifacts
-          cp cosmwasm/inj-merkle-airdrop/artifacts/*.wasm cosmwasm/artifacts/inj_merkle_airdrop.wasm
+          cp cosmwasm/inj-merkle-airdrop/artifacts/inj_merkle_airdrop.wasm cosmwasm/artifacts/
 
       - uses: actions/upload-artifact@v4
         with:
