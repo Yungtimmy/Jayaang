@@ -30,6 +30,8 @@ pub enum QueryMsg {
     GetCampaign { campaign_id: u64 },
     #[returns(HasClaimedResponse)]
     HasClaimed { campaign_id: u64, address: String },
+    #[returns(LeafHashResponse)]
+    LeafHash { address: String, amount: Uint128 },
     #[returns(VerifyClaimResponse)]
     VerifyClaim {
         campaign_id: u64,
@@ -57,6 +59,11 @@ pub struct CampaignResponse {
 #[cw_serde]
 pub struct HasClaimedResponse {
     pub claimed: bool,
+}
+
+#[cw_serde]
+pub struct LeafHashResponse {
+    pub leaf: Binary,
 }
 
 #[cw_serde]

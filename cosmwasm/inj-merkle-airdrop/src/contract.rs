@@ -9,8 +9,8 @@ use cw2::set_contract_version;
 use crate::error::ContractError;
 use crate::merkle::{leaf_hash, verify};
 use crate::msg::{
-    CampaignResponse, ExecuteMsg, HasClaimedResponse, InstantiateMsg, MigrateMsg,
-    NextCampaignIdResponse, QueryMsg, VerifyClaimResponse,
+    CampaignResponse, ExecuteMsg, HasClaimedResponse, InstantiateMsg, LeafHashResponse,
+    MigrateMsg, NextCampaignIdResponse, QueryMsg, VerifyClaimResponse,
 };
 use crate::state::{
     Campaign, CAMPAIGNS, CONTRACT_NAME, CONTRACT_VERSION, HAS_CLAIMED, NEXT_CAMPAIGN_ID,
@@ -173,6 +173,9 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
             campaign_id,
             address,
         } => to_json_binary(&query_has_claimed(deps, campaign_id, address)?),
+        QueryMsg::LeafHash { address, amount } => {
+            to_json_binary(&query_leaf_hash(address, amount)?)
+        }
         QueryMsg::VerifyClaim {
             campaign_id,
             address,
@@ -208,6 +211,12 @@ fn query_has_claimed(deps: Deps, campaign_id: u64, address: String) -> StdResult
         .may_load(deps.storage, claim_key(campaign_id, &address))?
         .unwrap_or(false);
     Ok(HasClaimedResponse { claimed })
+}
+
+fn query_leaf_hash(address: String, amount: Uint128) -> StdResult<LeafHashResponse> {
+    Ok(LeafHashResponse {
+        leaf: Binary::from(leaf_hash(&address, amount)),
+    })
 }
 
 fn query_verify_claim(

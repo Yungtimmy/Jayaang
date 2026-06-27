@@ -1,4 +1,4 @@
-use cosmwasm_std::{Binary, Uint128};
+use cosmwasm_std::{Binary, Uint128, Uint256};
 use sha3::{Digest, Keccak256};
 
 fn keccak256(data: &[u8]) -> [u8; 32] {
@@ -8,9 +8,7 @@ fn keccak256(data: &[u8]) -> [u8; 32] {
 }
 
 fn amount_to_bytes32(amount: Uint128) -> [u8; 32] {
-    let mut out = [0u8; 32];
-    out[16..32].copy_from_slice(&amount.u128().to_be_bytes());
-    out
+    Uint256::from(amount.u128()).to_be_bytes()
 }
 
 pub fn leaf_hash(address: &str, amount: Uint128) -> [u8; 32] {
