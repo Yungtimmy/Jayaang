@@ -9,8 +9,17 @@ export function leafHash(address: string, amount: bigint): Hex {
   return keccak256(keccak256(preimage));
 }
 
+function compareHexBytes(left: Hex, right: Hex): number {
+  const a = toBytes(left);
+  const b = toBytes(right);
+  for (let i = 0; i < a.length; i += 1) {
+    if (a[i] !== b[i]) return a[i] - b[i];
+  }
+  return 0;
+}
+
 function hashPair(left: Hex, right: Hex): Hex {
-  const [a, b] = left.toLowerCase() <= right.toLowerCase() ? [left, right] : [right, left];
+  const [a, b] = compareHexBytes(left, right) <= 0 ? [left, right] : [right, left];
   return keccak256(concat([a, b]));
 }
 

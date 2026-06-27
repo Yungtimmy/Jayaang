@@ -7,6 +7,7 @@
     "deploy:testnet": "hardhat run scripts/deploy.js --network injectiveTestnet",
     "build:cosmwasm": "powershell -ExecutionPolicy Bypass -File scripts/build-cosmwasm.ps1",
     "deploy:cosmwasm": "node scripts/deploy-cosmwasm.js",
+    "test:e2e": "node scripts/test-e2e-cosmwasm.js",
     "merkle": "node scripts/generate-merkle.js",
     "dev": "npm run dev --prefix web",
     "build:web": "npm run build --prefix web",

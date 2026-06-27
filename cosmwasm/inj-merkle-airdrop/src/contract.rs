@@ -122,7 +122,7 @@ fn execute_claim(
 
     let sender = info.sender.to_string();
     if HAS_CLAIMED
-        .may_load(deps.storage, (campaign_id, sender.as_str()))?
+        .may_load(deps.storage, (campaign_id, sender.clone()))?
         .unwrap_or(false)
     {
         return Err(ContractError::AlreadyClaimed {});
@@ -137,7 +137,7 @@ fn execute_claim(
         return Err(ContractError::InvalidProof {});
     }
 
-    HAS_CLAIMED.save(deps.storage, (campaign_id, sender.as_str()), &true)?;
+    HAS_CLAIMED.save(deps.storage, (campaign_id, sender.clone()), &true)?;
     campaign.claimed += amount;
     CAMPAIGNS.save(deps.storage, campaign_id, &campaign)?;
 
@@ -194,7 +194,7 @@ fn query_get_campaign(deps: Deps, campaign_id: u64) -> StdResult<CampaignRespons
 
 fn query_has_claimed(deps: Deps, campaign_id: u64, address: String) -> StdResult<HasClaimedResponse> {
     let claimed = HAS_CLAIMED
-        .may_load(deps.storage, (campaign_id, address.as_str()))?
+        .may_load(deps.storage, (campaign_id, address))?
         .unwrap_or(false);
     Ok(HasClaimedResponse { claimed })
 }
