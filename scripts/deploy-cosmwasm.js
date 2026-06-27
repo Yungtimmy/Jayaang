@@ -28,7 +28,15 @@ async function main() {
     process.env.WASM_PATH ?? "cosmwasm/artifacts/inj_merkle_airdrop.wasm",
   );
   if (!fs.existsSync(wasmPath)) {
-    throw new Error(`WASM not found at ${wasmPath}\nRun: npm run build:cosmwasm`);
+    throw new Error(
+      `WASM not found at ${wasmPath}\n` +
+        "Codespace / Linux:\n" +
+        "  npm run download:wasm     # from GitHub Actions (recommended)\n" +
+        "  npm run build:cosmwasm:docker\n" +
+        "Windows:\n" +
+        "  npm run download:wasm\n" +
+        "  npm run build:cosmwasm",
+    );
   }
 
   const wasm = fs.readFileSync(wasmPath);

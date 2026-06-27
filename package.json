@@ -6,6 +6,8 @@
     "compile": "hardhat compile",
     "deploy:testnet": "hardhat run scripts/deploy.js --network injectiveTestnet",
     "build:cosmwasm": "powershell -ExecutionPolicy Bypass -File scripts/build-cosmwasm.ps1",
+    "build:cosmwasm:docker": "bash scripts/build-cosmwasm.sh",
+    "download:wasm": "node scripts/download-wasm.js",
     "deploy:cosmwasm": "node scripts/deploy-cosmwasm.js",
     "migrate:cosmwasm": "node scripts/migrate-cosmwasm.js",
     "test:e2e": "node scripts/test-e2e-cosmwasm.js",
