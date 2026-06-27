@@ -1,0 +1,32 @@
+{
+  "name": "inj-airdrops",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "compile": "hardhat compile",
+    "deploy:testnet": "hardhat run scripts/deploy.js --network injectiveTestnet",
+    "build:cosmwasm": "powershell -ExecutionPolicy Bypass -File scripts/build-cosmwasm.ps1",
+    "deploy:cosmwasm": "node scripts/deploy-cosmwasm.js",
+    "merkle": "node scripts/generate-merkle.js",
+    "dev": "npm run dev --prefix web",
+    "build:web": "npm run build --prefix web",
+    "install:all": "npm install && npm install --prefix web"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "@openzeppelin/contracts": "^5.3.0",
+    "@openzeppelin/merkle-tree": "^1.0.7",
+    "dotenv": "^16.4.7",
+    "hardhat": "^2.22.17"
+  },
+  "dependencies": {
+    "@cosmjs/cosmwasm-stargate": "^0.33.0",
+    "@cosmjs/encoding": "^0.39.0",
+    "@cosmjs/proto-signing": "^0.33.0",
+    "@cosmjs/stargate": "^0.33.0",
+    "@injectivelabs/networks": "^1.14.18",
+    "@injectivelabs/sdk-ts": "^1.14.18",
+    "dotenv": "^16.4.7",
+    "viem": "^2.23.2"
+  }
+}

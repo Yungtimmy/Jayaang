@@ -1,0 +1,64 @@
+{
+  "root": "0x74cc9e8d1afbf1a344a2cccb089cedff7cdc4009b9b6671c0a28ba0ac2a6f7e1",
+  "recipientCount": 2,
+  "totalAmount": "350000000000000000",
+  "totalAmountInj": "0.35",
+  "recipients": [
+    {
+      "address": "inj12ms4zs769a6dynlhewfquesrzdnsmmjs6yuy2l",
+      "injAddress": "inj12ms4zs769a6dynlhewfquesrzdnsmmjs6yuy2l",
+      "evmAddress": "0x56e15143da2f74d24ff7cb920e660313670dee50",
+      "amount": "200000000000000000",
+      "amountInj": "0.2"
+    },
+    {
+      "address": "inj1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqz20kcxg",
+      "injAddress": "inj1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqz20kcxg",
+      "evmAddress": "0x0000000000000000000000000000000000000002",
+      "amount": "150000000000000000",
+      "amountInj": "0.15"
+    }
+  ],
+  "proofs": {
+    "inj12ms4zs769a6dynlhewfquesrzdnsmmjs6yuy2l": {
+      "address": "inj12ms4zs769a6dynlhewfquesrzdnsmmjs6yuy2l",
+      "injAddress": "inj12ms4zs769a6dynlhewfquesrzdnsmmjs6yuy2l",
+      "evmAddress": "0x56e15143da2f74d24ff7cb920e660313670dee50",
+      "amount": "200000000000000000",
+      "amountInj": "0.2",
+      "proof": [
+        "0x6fb3fbd08735cda4e0792657892512a4937d245956e63d628b540f99ab2b5cdd"
+      ]
+    },
+    "0x56e15143da2f74d24ff7cb920e660313670dee50": {
+      "address": "inj12ms4zs769a6dynlhewfquesrzdnsmmjs6yuy2l",
+      "injAddress": "inj12ms4zs769a6dynlhewfquesrzdnsmmjs6yuy2l",
+      "evmAddress": "0x56e15143da2f74d24ff7cb920e660313670dee50",
+      "amount": "200000000000000000",
+      "amountInj": "0.2",
+      "proof": [
+        "0x6fb3fbd08735cda4e0792657892512a4937d245956e63d628b540f99ab2b5cdd"
+      ]
+    },
+    "inj1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqz20kcxg": {
+      "address": "inj1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqz20kcxg",
+      "injAddress": "inj1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqz20kcxg",
+      "evmAddress": "0x0000000000000000000000000000000000000002",
+      "amount": "150000000000000000",
+      "amountInj": "0.15",
+      "proof": [
+        "0xf30325ffc9a02473f36f0ce5fcf60342d083e7c77ffc53c77ed8060e08d867bc"
+      ]
+    },
+    "0x0000000000000000000000000000000000000002": {
+      "address": "inj1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqz20kcxg",
+      "injAddress": "inj1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqz20kcxg",
+      "evmAddress": "0x0000000000000000000000000000000000000002",
+      "amount": "150000000000000000",
+      "amountInj": "0.15",
+      "proof": [
+        "0xf30325ffc9a02473f36f0ce5fcf60342d083e7c77ffc53c77ed8060e08d867bc"
+      ]
+    }
+  }
+}

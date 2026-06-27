@@ -1,0 +1,8 @@
+[alias]
+wasm = "build --release --target wasm32-unknown-unknown"
+
+[target.wasm32-unknown-unknown]
+rustflags = [
+  "-C", "link-arg=--import-undefined",
+  "-C", "link-arg=-s",
+]

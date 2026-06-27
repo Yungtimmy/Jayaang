@@ -1,0 +1,26 @@
+name: Build CosmWasm WASM
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "cosmwasm/inj-merkle-airdrop/**"
+      - ".github/workflows/build-wasm.yml"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build with CosmWasm optimizer
+        run: |
+          docker run --rm -v "${{ github.workspace }}/cosmwasm/inj-merkle-airdrop:/code" \
+            cosmwasm/optimizer:0.16.0
+          mkdir -p cosmwasm/artifacts
+          cp cosmwasm/inj-merkle-airdrop/artifacts/*.wasm cosmwasm/artifacts/inj_merkle_airdrop.wasm
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: inj_merkle_airdrop-wasm
+          path: cosmwasm/artifacts/inj_merkle_airdrop.wasm

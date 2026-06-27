@@ -1,0 +1,14 @@
+node_modules/
+artifacts/
+cache/
+.env
+.env.local
+web/.env.local
+web/node_modules/
+web/.next/
+web/public/campaigns/*.json
+!web/public/campaigns/.gitkeep
+*.log
+
+# CosmWasm / Rust build output
+cosmwasm/**/target/
