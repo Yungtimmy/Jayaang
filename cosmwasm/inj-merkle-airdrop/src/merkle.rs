@@ -9,8 +9,7 @@ fn keccak256(data: &[u8]) -> [u8; 32] {
 
 fn amount_to_bytes32(amount: Uint128) -> [u8; 32] {
     let mut out = [0u8; 32];
-    let bytes = amount.u128().to_be_bytes();
-    out[24..32].copy_from_slice(&bytes);
+    out[16..32].copy_from_slice(&amount.u128().to_be_bytes());
     out
 }
 
