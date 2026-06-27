@@ -9,3 +9,13 @@ export function hexToBytes(hex: string): Uint8Array {
   }
   return bytes;
 }
+
+/** CosmWasm Binary fields must be base64 strings in JSON execute messages. */
+export function hexToBase64(hex: string): string {
+  const bytes = hexToBytes(hex);
+  let binary = "";
+  for (let i = 0; i < bytes.length; i += 1) {
+    binary += String.fromCharCode(bytes[i]!);
+  }
+  return btoa(binary);
+}

@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { getContractAddress } from "@/lib/config";
 import { INJECTIVE_TESTNET } from "@/lib/cosmos";
-import { hexToBytes } from "@/lib/bytes";
+import { hexToBase64 } from "@/lib/bytes";
 import { buildMerkleArtifact, downloadJson, parseCsv, type MerkleArtifact } from "@/lib/merkle";
 import { useWallet } from "@/lib/wallet";
 
@@ -54,7 +54,7 @@ export function CreateAirdrop() {
         contract,
         {
           create_campaign: {
-            merkle_root: hexToBytes(artifact.root),
+            merkle_root: hexToBase64(artifact.root),
             expires_at: expiresAt,
             name: campaignName,
           },

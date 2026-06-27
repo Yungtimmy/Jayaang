@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { formatUnits } from "viem";
-import { hexToBytes } from "@/lib/bytes";
+import { hexToBase64 } from "@/lib/bytes";
 import { getContractAddress } from "@/lib/config";
 import type { CampaignView } from "@/lib/cosmos";
 import type { MerkleArtifact } from "@/lib/merkle";
@@ -115,7 +115,7 @@ export function ClaimAirdrop() {
           claim: {
             campaign_id: Number(campaignId),
             amount: eligibility.amount,
-            proof: eligibility.proof.map((step) => hexToBytes(step)),
+            proof: eligibility.proof.map((step) => hexToBase64(step)),
           },
         },
         "auto",
