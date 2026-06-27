@@ -132,7 +132,11 @@ fn execute_claim(
         return Err(ContractError::AlreadyClaimed {});
     }
 
-    if campaign.claimed.checked_add(amount).unwrap_or(Uint128::MAX) > campaign.deposited {
+    let remaining = campaign
+        .deposited
+        .checked_sub(campaign.claimed)
+        .map_err(|_| ContractError::InsufficientFunds {})?;
+    if amount > remaining {
         return Err(ContractError::InsufficientFunds {});
     }
 
@@ -142,7 +146,10 @@ fn execute_claim(
     }
 
     HAS_CLAIMED.save(deps.storage, claim_key(campaign_id, &sender), &true)?;
-    campaign.claimed = campaign.claimed.checked_add(amount)?;
+    campaign.claimed = campaign
+        .claimed
+        .checked_add(amount)
+        .map_err(|_| ContractError::InsufficientFunds {})?;
     CAMPAIGNS.save(deps.storage, campaign_id, &campaign)?;
 
     Ok(Response::new()
