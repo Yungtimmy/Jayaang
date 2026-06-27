@@ -10,7 +10,7 @@ use crate::error::ContractError;
 use crate::merkle::{leaf_hash, verify};
 use crate::msg::{
     CampaignResponse, ExecuteMsg, HasClaimedResponse, InstantiateMsg, NextCampaignIdResponse,
-    QueryMsg,
+    QueryMsg, VerifyClaimResponse,
 };
 use crate::state::{
     Campaign, CAMPAIGNS, CONTRACT_NAME, CONTRACT_VERSION, HAS_CLAIMED, NEXT_CAMPAIGN_ID,
@@ -132,7 +132,7 @@ fn execute_claim(
         return Err(ContractError::AlreadyClaimed {});
     }
 
-    if campaign.claimed + amount > campaign.deposited {
+    if campaign.claimed.checked_add(amount).unwrap_or(Uint128::MAX) > campaign.deposited {
         return Err(ContractError::InsufficientFunds {});
     }
 
@@ -142,7 +142,7 @@ fn execute_claim(
     }
 
     HAS_CLAIMED.save(deps.storage, claim_key(campaign_id, &sender), &true)?;
-    campaign.claimed += amount;
+    campaign.claimed = campaign.claimed.checked_add(amount)?;
     CAMPAIGNS.save(deps.storage, campaign_id, &campaign)?;
 
     Ok(Response::new()
@@ -166,6 +166,12 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
             campaign_id,
             address,
         } => to_json_binary(&query_has_claimed(deps, campaign_id, address)?),
+        QueryMsg::VerifyClaim {
+            campaign_id,
+            address,
+            amount,
+            proof,
+        } => to_json_binary(&query_verify_claim(deps, campaign_id, address, amount, proof)?),
     }
 }
 
@@ -195,6 +201,22 @@ fn query_has_claimed(deps: Deps, campaign_id: u64, address: String) -> StdResult
         .may_load(deps.storage, claim_key(campaign_id, &address))?
         .unwrap_or(false);
     Ok(HasClaimedResponse { claimed })
+}
+
+fn query_verify_claim(
+    deps: Deps,
+    campaign_id: u64,
+    address: String,
+    amount: Uint128,
+    proof: Vec<Binary>,
+) -> StdResult<VerifyClaimResponse> {
+    let campaign = CAMPAIGNS
+        .may_load(deps.storage, campaign_id)?
+        .ok_or_else(|| cosmwasm_std::StdError::generic_err("unknown campaign"))?;
+
+    let leaf = leaf_hash(&address, amount);
+    let valid = verify(&proof, campaign.merkle_root.as_slice(), leaf);
+    Ok(VerifyClaimResponse { valid })
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]

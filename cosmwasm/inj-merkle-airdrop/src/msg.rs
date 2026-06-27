@@ -27,6 +27,13 @@ pub enum QueryMsg {
     GetCampaign { campaign_id: u64 },
     #[returns(HasClaimedResponse)]
     HasClaimed { campaign_id: u64, address: String },
+    #[returns(VerifyClaimResponse)]
+    VerifyClaim {
+        campaign_id: u64,
+        address: String,
+        amount: Uint128,
+        proof: Vec<Binary>,
+    },
 }
 
 #[cw_serde]
@@ -47,4 +54,9 @@ pub struct CampaignResponse {
 #[cw_serde]
 pub struct HasClaimedResponse {
     pub claimed: bool,
+}
+
+#[cw_serde]
+pub struct VerifyClaimResponse {
+    pub valid: bool,
 }
