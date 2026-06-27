@@ -1,7 +1,7 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
-    to_json_binary, BankMsg, Binary, Coin, Deps, DepsMut, Env, MessageInfo, Response, StdResult,
+    coins, to_json_binary, BankMsg, Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult,
     Uint128,
 };
 use cw2::set_contract_version;
@@ -145,19 +145,13 @@ fn execute_claim(
     campaign.claimed += amount;
     CAMPAIGNS.save(deps.storage, campaign_id, &campaign)?;
 
-    let send = BankMsg::Send {
-        to_address: sender.clone(),
-        amount: vec![Coin {
-            denom: INJ_DENOM.to_string(),
-            amount,
-        }],
-    };
-
     Ok(Response::new()
-        .add_message(send)
+        .add_message(BankMsg::Send {
+            to_address: sender,
+            amount: coins(amount.u128(), INJ_DENOM),
+        })
         .add_attribute("action", "claim")
         .add_attribute("campaign_id", campaign_id.to_string())
-        .add_attribute("claimer", sender)
         .add_attribute("amount", amount))
 }
 
