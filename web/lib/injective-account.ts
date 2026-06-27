@@ -1,5 +1,6 @@
 import { encodeSecp256k1Pubkey } from "@cosmjs/amino";
 import { SigningCosmWasmClient, type SigningCosmWasmClientOptions } from "@cosmjs/cosmwasm-stargate";
+import { patchSigningCosmWasmClientForInjective } from "./injective-signing";
 import { Uint64 } from "@cosmjs/math";
 import type { OfflineSigner } from "@cosmjs/proto-signing";
 import { decodeOptionalPubkey } from "@cosmjs/proto-signing";
@@ -111,6 +112,8 @@ export function injectiveAccountFromAny(input: Any): Account {
  * CosmWasmClient hardcodes the default account parser and ignores accountParser options.
  * Override getAccount so Injective EthAccount addresses can sign transactions.
  */
+patchSigningCosmWasmClientForInjective();
+
 export class InjectiveSigningCosmWasmClient extends SigningCosmWasmClient {
   static async connectWithSigner(
     endpoint: string | HttpEndpoint,
