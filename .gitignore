@@ -12,5 +12,4 @@ web/public/campaigns/*.json
 
 # CosmWasm / Rust build output
 cosmwasm/**/target/
-cosmwasm/**/Cargo.lock
 cosmwasm/**/artifacts/
