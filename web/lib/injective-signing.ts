@@ -1,5 +1,5 @@
 import { SigningCosmWasmClient } from "@cosmjs/cosmwasm-stargate";
-import { fromBase64 } from "@cosmjs/encoding";
+import { fromBase64Padded } from "./bytes";
 import { Int53 } from "@cosmjs/math";
 import type { EncodeObject, OfflineSigner } from "@cosmjs/proto-signing";
 import {
@@ -86,7 +86,7 @@ export function patchSigningCosmWasmClientForInjective(): void {
     return TxRaw.fromPartial({
       bodyBytes: signed.bodyBytes,
       authInfoBytes: signed.authInfoBytes,
-      signatures: [fromBase64(signature.signature)],
+      signatures: [fromBase64Padded(signature.signature)],
     });
   };
 
@@ -134,7 +134,7 @@ export function patchSigningCosmWasmClientForInjective(): void {
     return TxRaw.fromPartial({
       bodyBytes: signedTxBodyBytes,
       authInfoBytes: signedAuthInfoBytes,
-      signatures: [fromBase64(signature.signature)],
+      signatures: [fromBase64Padded(signature.signature)],
     });
   };
 }

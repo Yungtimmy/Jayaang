@@ -1,3 +1,5 @@
+import { fromBase64 } from "@cosmjs/encoding";
+
 export function hexToBytes(hex: string): Uint8Array {
   const normalized = hex.startsWith("0x") ? hex.slice(2) : hex;
   if (normalized.length % 2 !== 0) {
@@ -18,4 +20,11 @@ export function hexToBase64(hex: string): string {
     binary += String.fromCharCode(bytes[i]!);
   }
   return btoa(binary);
+}
+
+/** Keplr and other wallets often omit base64 padding; CosmJS requires it. */
+export function fromBase64Padded(value: string): Uint8Array {
+  const normalized = value.replace(/-/g, "+").replace(/_/g, "/");
+  const padded = normalized.padEnd(normalized.length + ((4 - (normalized.length % 4)) % 4), "=");
+  return fromBase64(padded);
 }
