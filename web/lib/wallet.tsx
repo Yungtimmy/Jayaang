@@ -9,10 +9,11 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { CosmWasmClient, SigningCosmWasmClient } from "@cosmjs/cosmwasm-stargate";
+import { CosmWasmClient } from "@cosmjs/cosmwasm-stargate";
 import type { OfflineSigner } from "@cosmjs/proto-signing";
 import { GasPrice } from "@cosmjs/stargate";
 import { KEPLR_CHAIN_INFO, INJECTIVE_TESTNET } from "./cosmos";
+import { InjectiveSigningCosmWasmClient } from "./injective-account";
 
 type KeplrWindow = Window & {
   keplr?: {
@@ -28,7 +29,7 @@ type WalletContextValue = {
   isConnected: boolean;
   isConnecting: boolean;
   queryClient?: CosmWasmClient;
-  signingClient?: SigningCosmWasmClient;
+  signingClient?: InjectiveSigningCosmWasmClient;
   connect: () => Promise<void>;
   disconnect: () => void;
 };
@@ -39,7 +40,7 @@ const gasPrice = GasPrice.fromString(INJECTIVE_TESTNET.gasPrice);
 
 export function WalletProvider({ children }: { children: ReactNode }) {
   const [address, setAddress] = useState<string | undefined>();
-  const [signingClient, setSigningClient] = useState<SigningCosmWasmClient | undefined>();
+  const [signingClient, setSigningClient] = useState<InjectiveSigningCosmWasmClient | undefined>();
   const [queryClient, setQueryClient] = useState<CosmWasmClient | undefined>();
   const [isConnecting, setIsConnecting] = useState(false);
 
@@ -53,7 +54,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     const accounts = await offlineSigner.getAccounts();
     if (!accounts[0]) throw new Error("No Keplr account available");
 
-    const client = await SigningCosmWasmClient.connectWithSigner(
+    const client = await InjectiveSigningCosmWasmClient.connectWithSigner(
       INJECTIVE_TESTNET.rpc,
       offlineSigner,
       { gasPrice },
