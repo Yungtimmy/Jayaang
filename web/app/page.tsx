@@ -47,7 +47,8 @@ export default function HomePage() {
             <li>Get testnet INJ from the <a href="https://testnet.faucet.injective.network/" target="_blank" rel="noreferrer">faucet</a> (native Cosmos INJ).</li>
             <li>Deploy CosmWasm contract: <code>npm run deploy:cosmwasm</code>.</li>
             <li>Create a campaign with Keplr (sends native INJ), download <code>merkle.json</code>, share with recipients.</li>
-            <li>Recipients connect Keplr on <code>injective-888</code> and claim native INJ to their <code>inj1</code> address.</li>
+            <li>Publish <code>merkle.json</code> under <code>web/public/</code> (e.g. <code>merkle-0.json</code>).</li>
+            <li>Recipients connect Keplr on <code>injective-888</code> and claim — no file upload required.</li>
           </ol>
         </div>
       </section>

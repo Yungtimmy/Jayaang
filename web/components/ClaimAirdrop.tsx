@@ -6,6 +6,7 @@ import { hexToBase64 } from "@/lib/bytes";
 import { getContractAddress } from "@/lib/config";
 import type { CampaignView } from "@/lib/cosmos";
 import type { MerkleArtifact } from "@/lib/merkle";
+import { fetchMerkleArtifact, getMerkleUrl, normalizeMerkleRoot } from "@/lib/merkle-loader";
 import { useWallet } from "@/lib/wallet";
 
 export function ClaimAirdrop() {
@@ -13,13 +14,16 @@ export function ClaimAirdrop() {
   const { address, isConnected, queryClient, signingClient } = useWallet();
 
   const [campaignId, setCampaignId] = useState("0");
-  const [merkleFile, setMerkleFile] = useState<MerkleArtifact | null>(null);
+  const [merkleArtifact, setMerkleArtifact] = useState<MerkleArtifact | null>(null);
+  const [merkleLoading, setMerkleLoading] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [campaignCount, setCampaignCount] = useState(0);
   const [campaign, setCampaign] = useState<CampaignView | null>(null);
   const [alreadyClaimed, setAlreadyClaimed] = useState(false);
+
+  const merkleUrl = useMemo(() => getMerkleUrl(Number(campaignId || "0")), [campaignId]);
 
   useEffect(() => {
     if (!contract || !queryClient) return;
@@ -63,6 +67,30 @@ export function ClaimAirdrop() {
   }, [contract, campaignId, queryClient]);
 
   useEffect(() => {
+    let cancelled = false;
+    setMerkleArtifact(null);
+    setMerkleLoading(true);
+    setLocalError(null);
+
+    fetchMerkleArtifact(Number(campaignId || "0"))
+      .then((artifact) => {
+        if (!cancelled) setMerkleArtifact(artifact);
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setLocalError(err instanceof Error ? err.message : "Could not load merkle proofs");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setMerkleLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [campaignId]);
+
+  useEffect(() => {
     if (!contract || !address || !queryClient) {
       setAlreadyClaimed(false);
       return;
@@ -78,29 +106,21 @@ export function ClaimAirdrop() {
       .catch(() => setAlreadyClaimed(false));
   }, [contract, campaignId, address, queryClient]);
 
+  const merkleRootMismatch = useMemo(() => {
+    if (!campaign || !merkleArtifact) return false;
+    return normalizeMerkleRoot(campaign.merkleRoot) !== normalizeMerkleRoot(merkleArtifact.root);
+  }, [campaign, merkleArtifact]);
+
   const eligibility = useMemo(() => {
-    if (!address || !merkleFile) return null;
-    return merkleFile.proofs[address.toLowerCase()] ?? null;
-  }, [address, merkleFile]);
+    if (!address || !merkleArtifact || merkleRootMismatch) return null;
+    return merkleArtifact.proofs[address.toLowerCase()] ?? null;
+  }, [address, merkleArtifact, merkleRootMismatch]);
 
   const amountDisplay = useMemo(() => {
     if (!eligibility) return null;
     if (eligibility.amountInj) return `${eligibility.amountInj} INJ`;
     return `${formatUnits(BigInt(eligibility.amount), 18)} INJ`;
   }, [eligibility]);
-
-  async function handleFileChange(file: File | undefined) {
-    setLocalError(null);
-    if (!file) return;
-    try {
-      const text = await file.text();
-      const parsed = JSON.parse(text) as MerkleArtifact;
-      if (!parsed.root || !parsed.proofs) throw new Error("Invalid merkle.json");
-      setMerkleFile(parsed);
-    } catch (err) {
-      setLocalError(err instanceof Error ? err.message : "Could not read merkle file");
-    }
-  }
 
   async function handleClaim() {
     if (!contract || !eligibility || !signingClient || !address) return;
@@ -145,27 +165,17 @@ export function ClaimAirdrop() {
     <div className="card" style={{ padding: 24 }}>
       <h2 style={{ marginTop: 0 }}>Claim INJ Airdrop</h2>
       <p className="muted">
-        Upload <code>merkle.json</code>, enter the campaign ID, and claim native INJ to your Keplr wallet.
+        Connect Keplr on <code>injective-888</code>, pick the campaign, and claim native INJ. Proofs load
+        automatically from the hosted merkle file.
       </p>
 
       <div style={{ display: "grid", gap: 16, marginTop: 20 }}>
-        <div className="grid-2">
-          <div>
-            <label className="label">Campaign ID</label>
-            <input className="input" value={campaignId} onChange={(e) => setCampaignId(e.target.value)} />
-            <p className="muted" style={{ fontSize: 13, marginTop: 8 }}>
-              {campaignCount} campaign(s) created so far.
-            </p>
-          </div>
-          <div>
-            <label className="label">Merkle file</label>
-            <input
-              className="input"
-              type="file"
-              accept="application/json"
-              onChange={(e) => handleFileChange(e.target.files?.[0])}
-            />
-          </div>
+        <div>
+          <label className="label">Campaign ID</label>
+          <input className="input" value={campaignId} onChange={(e) => setCampaignId(e.target.value)} />
+          <p className="muted" style={{ fontSize: 13, marginTop: 8 }}>
+            {campaignCount} campaign(s) created so far. Proofs: <code>{merkleUrl}</code>
+          </p>
         </div>
 
         {campaign && (
@@ -191,6 +201,15 @@ export function ClaimAirdrop() {
           </div>
         )}
 
+        {merkleLoading && <p className="muted">Loading eligibility for this campaign...</p>}
+
+        {merkleRootMismatch && (
+          <p style={{ color: "var(--danger)", margin: 0 }}>
+            Hosted merkle file does not match this campaign&apos;s on-chain root. Ask the organizer to publish the
+            correct file.
+          </p>
+        )}
+
         {eligibility ? (
           <div
             className="card"
@@ -213,11 +232,16 @@ export function ClaimAirdrop() {
             </button>
           </div>
         ) : (
-          <p className="muted">
-            {merkleFile && isConnected
-              ? "Your Keplr address is not in this Merkle file."
-              : "Connect Keplr and upload merkle.json to check eligibility."}
-          </p>
+          !merkleLoading &&
+          !merkleRootMismatch && (
+            <p className="muted">
+              {!isConnected
+                ? "Connect Keplr to check if your address is eligible."
+                : merkleArtifact
+                  ? "Your connected address is not eligible for this campaign."
+                  : "Eligibility data is not available yet for this campaign."}
+            </p>
+          )
         )}
 
         {status && <p style={{ color: "var(--success)", margin: 0 }}>{status}</p>}

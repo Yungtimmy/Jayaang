@@ -63,7 +63,9 @@ export function CreateAirdrop() {
         undefined,
         [{ denom: INJECTIVE_TESTNET.coinMinimalDenom, amount: artifact.totalAmount }],
       );
-      setStatus(`Campaign created (${result.transactionHash}). Share merkle.json with recipients.`);
+      setStatus(
+        `Campaign created (${result.transactionHash}). Copy merkle.json to web/public/merkle-<id>.json so recipients can claim without uploading files.`,
+      );
     } catch (err) {
       setLocalError(err instanceof Error ? err.message : "Create campaign failed");
     } finally {
