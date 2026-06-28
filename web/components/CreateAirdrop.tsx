@@ -8,12 +8,11 @@ import { buildMerkleArtifact, downloadJson, parseCsv, type MerkleArtifact } from
 import { useWallet } from "@/lib/wallet";
 
 const EXAMPLE_CSV = `address,amount
-inj12ms4zs769a6dynlhewfquesrzdnsmmjs6yuy2l,0.2
-inj1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqz20kcxg,0.15`;
+inj14rvcf3g0j8vfylws83wgnwzd2nnr4qd7nj04nt,0.004`;
 
 export function CreateAirdrop() {
   const contract = getContractAddress();
-  const { isConnected, address, signingClient } = useWallet();
+  const { isConnected, address, refresh } = useWallet();
 
   const [csv, setCsv] = useState(EXAMPLE_CSV);
   const [campaignName, setCampaignName] = useState("INJ Testnet Drop");
@@ -43,13 +42,14 @@ export function CreateAirdrop() {
   }
 
   async function handleCreateCampaign() {
-    if (!contract || !artifact || !signingClient || !address) return;
+    if (!contract || !artifact || !address) return;
     setBusy(true);
     setLocalError(null);
     setStatus(null);
     try {
+      const client = await refresh();
       const expiresAt = Math.floor(Date.now() / 1000) + expiryDays * 24 * 60 * 60;
-      const result = await signingClient.execute(
+      const result = await client.execute(
         address,
         contract,
         {
@@ -64,7 +64,7 @@ export function CreateAirdrop() {
         [{ denom: INJECTIVE_TESTNET.coinMinimalDenom, amount: artifact.totalAmount }],
       );
       setStatus(
-        `Campaign created (${result.transactionHash}). Copy merkle.json to web/public/merkle-<id>.json so recipients can claim without uploading files.`,
+        `Campaign created (${result.transactionHash}). Save your merkle file as web/public/merkle-<id>.json (next ID is shown in Setup status) and restart dev if needed.`,
       );
     } catch (err) {
       setLocalError(err instanceof Error ? err.message : "Create campaign failed");

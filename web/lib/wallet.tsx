@@ -20,8 +20,14 @@ type KeplrWindow = Window & {
     experimentalSuggestChain: (chainInfo: typeof KEPLR_CHAIN_INFO) => Promise<void>;
     enable: (chainId: string) => Promise<void>;
     getOfflineSigner: (chainId: string) => OfflineSigner;
+    getOfflineSignerAuto?: (chainId: string) => OfflineSigner | Promise<OfflineSigner>;
   };
 };
+
+async function getKeplrOfflineSigner(keplr: NonNullable<KeplrWindow["keplr"]>): Promise<OfflineSigner> {
+  // Injective + CosmWasm: amino signer is the most reliable path with our signing patch.
+  return keplr.getOfflineSigner(INJECTIVE_TESTNET.chainId);
+}
 
 type WalletContextValue = {
   address?: string;
@@ -31,6 +37,7 @@ type WalletContextValue = {
   queryClient?: CosmWasmClient;
   signingClient?: InjectiveSigningCosmWasmClient;
   connect: () => Promise<void>;
+  refresh: () => Promise<InjectiveSigningCosmWasmClient>;
   disconnect: () => void;
 };
 
@@ -71,7 +78,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
     try {
       await keplr.enable(INJECTIVE_TESTNET.chainId);
-      await connectWithSigner(keplr.getOfflineSigner(INJECTIVE_TESTNET.chainId));
+      await connectWithSigner(await getKeplrOfflineSigner(keplr));
     } catch {
       // Not authorized yet
     }
@@ -91,11 +98,31 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     try {
       await keplr.experimentalSuggestChain(KEPLR_CHAIN_INFO);
       await keplr.enable(INJECTIVE_TESTNET.chainId);
-      await connectWithSigner(keplr.getOfflineSigner(INJECTIVE_TESTNET.chainId));
+      await connectWithSigner(await getKeplrOfflineSigner(keplr));
     } finally {
       setIsConnecting(false);
     }
   }, [connectWithSigner]);
+
+  const refresh = useCallback(async () => {
+    const keplr = (window as KeplrWindow).keplr;
+    if (!keplr) throw new Error("Keplr not found. Connect your wallet first.");
+    await keplr.enable(INJECTIVE_TESTNET.chainId);
+    const offlineSigner = await getKeplrOfflineSigner(keplr);
+    const accounts = await offlineSigner.getAccounts();
+    if (!accounts[0]) throw new Error("No Keplr account available");
+
+    const client = await InjectiveSigningCosmWasmClient.connectWithSigner(
+      INJECTIVE_TESTNET.rpc,
+      offlineSigner,
+      { gasPrice },
+    );
+
+    setAddress(accounts[0].address);
+    setSigningClient(client);
+    setQueryClient(client);
+    return client;
+  }, []);
 
   const disconnect = useCallback(() => {
     setAddress(undefined);
@@ -114,9 +141,10 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       queryClient,
       signingClient,
       connect,
+      refresh,
       disconnect,
     }),
-    [address, isConnecting, queryClient, signingClient, connect, disconnect],
+    [address, isConnecting, queryClient, signingClient, connect, refresh, disconnect],
   );
 
   return <WalletContext.Provider value={value}>{children}</WalletContext.Provider>;

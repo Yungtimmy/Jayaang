@@ -1,7 +1,7 @@
 import { concat, keccak256, pad, toBytes, toHex, type Hex } from "viem";
 
-function amountToBytes32(amount: bigint): Hex {
-  return pad(toHex(amount), { size: 32 });
+function amountToBytes32(amount: bigint): Uint8Array {
+  return toBytes(pad(toHex(amount), { size: 32 }));
 }
 
 export function leafHash(address: string, amount: bigint): Hex {

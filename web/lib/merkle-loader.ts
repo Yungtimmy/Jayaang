@@ -1,4 +1,5 @@
-import { fromBase64, toHex } from "@cosmjs/encoding";
+import { toHex } from "@cosmjs/encoding";
+import { fromBase64Padded } from "./bytes";
 import type { MerkleArtifact } from "./merkle";
 
 /** Public URL where claim proofs are hosted (no upload needed for recipients). */
@@ -9,7 +10,7 @@ export function getMerkleUrl(campaignId: number): string {
   const base = process.env.NEXT_PUBLIC_MERKLE_BASE_URL?.trim().replace(/\/$/, "");
   if (base) return `${base}/merkle-${campaignId}.json`;
 
-  return campaignId === 0 ? "/merkle-test.json" : `/merkle-${campaignId}.json`;
+  return `/merkle-${campaignId}.json`;
 }
 
 export async function fetchMerkleArtifact(campaignId: number): Promise<MerkleArtifact> {
@@ -27,14 +28,20 @@ export async function fetchMerkleArtifact(campaignId: number): Promise<MerkleArt
   return parsed;
 }
 
-export function normalizeMerkleRoot(root: string): string {
+export function normalizeMerkleRoot(root: string | Uint8Array): string {
+  if (root instanceof Uint8Array) {
+    return `0x${toHex(root)}`;
+  }
+
   const trimmed = root.trim();
+  if (!trimmed) return "0x";
+
   if (trimmed.startsWith("0x") || trimmed.startsWith("0X")) {
     return `0x${trimmed.slice(2).toLowerCase()}`;
   }
 
   try {
-    return `0x${toHex(fromBase64(trimmed))}`;
+    return `0x${toHex(fromBase64Padded(trimmed))}`;
   } catch {
     return `0x${trimmed.toLowerCase()}`;
   }

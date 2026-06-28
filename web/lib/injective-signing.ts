@@ -1,5 +1,6 @@
+import { isSecp256k1Pubkey, type Pubkey } from "@cosmjs/amino";
 import { SigningCosmWasmClient } from "@cosmjs/cosmwasm-stargate";
-import { fromBase64Padded } from "./bytes";
+import { fromBase64Padded, toWalletBytes } from "./bytes";
 import { Int53 } from "@cosmjs/math";
 import type { EncodeObject, OfflineSigner } from "@cosmjs/proto-signing";
 import {
@@ -28,8 +29,19 @@ type PatchedSigningClient = {
   };
 };
 
+function accountPubkeyToBytes(pubkey: Uint8Array | Pubkey): Uint8Array {
+  if (pubkey instanceof Uint8Array) {
+    return pubkey;
+  }
+  if (isSecp256k1Pubkey(pubkey)) {
+    return fromBase64Padded(pubkey.value);
+  }
+  throw new Error(`Unsupported wallet pubkey type: ${pubkey.type}`);
+}
+
 /** Injective expects ethsecp256k1 pubkeys in tx auth info, not cosmos secp256k1. */
-export function encodeInjectivePubkey(rawKey: Uint8Array): Any {
+export function encodeInjectivePubkey(pubkey: Uint8Array | Pubkey): Any {
+  const rawKey = accountPubkeyToBytes(pubkey);
   const proto = PubKey.fromPartial({ key: rawKey });
   return Any.fromPartial({
     typeUrl: ETH_SECP256K1_PUBKEY_TYPE_URL,
@@ -83,14 +95,17 @@ export function patchSigningCosmWasmClientForInjective(): void {
     );
     const signDoc = makeSignDoc(txBodyBytes, authInfoBytes, chainId, accountNumber);
     const { signature, signed } = await client.signer.signDirect(signerAddress, signDoc);
+    if (!signature.signature) {
+      throw new Error("Keplr did not return a transaction signature");
+    }
     return TxRaw.fromPartial({
-      bodyBytes: signed.bodyBytes,
-      authInfoBytes: signed.authInfoBytes,
-      signatures: [fromBase64Padded(signature.signature)],
+      bodyBytes: toWalletBytes(signed.bodyBytes),
+      authInfoBytes: toWalletBytes(signed.authInfoBytes),
+      signatures: [toWalletBytes(signature.signature)],
     });
   };
 
-  prototype.signAmino = async function (
+  prototype.signAmino = async function signAminoWithInjectivePubkey(
     signerAddress: string,
     messages: readonly EncodeObject[],
     fee: StdFee,
@@ -123,6 +138,7 @@ export function patchSigningCosmWasmClientForInjective(): void {
     const signedTxBodyBytes = client.registry.encode(signedTxBody);
     const signedGasLimit = Int53.fromString(signed.fee.gas).toNumber();
     const signedSequence = Int53.fromString(signed.sequence).toNumber();
+    // Auth info sequence must match the amino sign doc Keplr actually signed.
     const signedAuthInfoBytes = makeAuthInfoBytes(
       [{ pubkey, sequence: signedSequence }],
       signed.fee.amount,
@@ -131,10 +147,14 @@ export function patchSigningCosmWasmClientForInjective(): void {
       signed.fee.payer,
       signMode,
     );
+    if (!signature.signature) {
+      throw new Error("Keplr did not return a transaction signature");
+    }
+
     return TxRaw.fromPartial({
       bodyBytes: signedTxBodyBytes,
       authInfoBytes: signedAuthInfoBytes,
-      signatures: [fromBase64Padded(signature.signature)],
+      signatures: [toWalletBytes(signature.signature)],
     });
   };
 }

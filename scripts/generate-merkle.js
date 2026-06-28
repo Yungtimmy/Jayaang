@@ -25,7 +25,7 @@ function formatInjAmount(amount) {
 }
 
 function amountToBytes32(amount) {
-  return pad(toHex(amount), { size: 32 });
+  return toBytes(pad(toHex(amount), { size: 32 }));
 }
 
 function leafHash(address, amount) {

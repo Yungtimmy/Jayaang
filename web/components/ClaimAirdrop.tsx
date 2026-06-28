@@ -11,9 +11,9 @@ import { useWallet } from "@/lib/wallet";
 
 export function ClaimAirdrop() {
   const contract = getContractAddress();
-  const { address, isConnected, queryClient, signingClient } = useWallet();
+  const { address, isConnected, queryClient, signingClient, refresh } = useWallet();
 
-  const [campaignId, setCampaignId] = useState("0");
+  const [campaignId, setCampaignId] = useState("4");
   const [merkleArtifact, setMerkleArtifact] = useState<MerkleArtifact | null>(null);
   const [merkleLoading, setMerkleLoading] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
@@ -122,13 +122,28 @@ export function ClaimAirdrop() {
     return `${formatUnits(BigInt(eligibility.amount), 18)} INJ`;
   }, [eligibility]);
 
+  async function syncClaimStatus(): Promise<boolean> {
+    if (!contract || !address || !queryClient) return false;
+    const value = await queryClient.queryContractSmart(contract, {
+      has_claimed: { campaign_id: Number(campaignId || "0"), address },
+    });
+    const claimed = (value as { claimed: boolean }).claimed;
+    setAlreadyClaimed(Boolean(claimed));
+    return Boolean(claimed);
+  }
+
   async function handleClaim() {
-    if (!contract || !eligibility || !signingClient || !address) return;
+    if (!contract || !eligibility || !address) return;
+    if (alreadyClaimed) {
+      setStatus("You already claimed this campaign. Native INJ was sent to your wallet.");
+      return;
+    }
     setBusy(true);
     setLocalError(null);
     setStatus(null);
     try {
-      const result = await signingClient.execute(
+      const client = await refresh();
+      const result = await client.execute(
         address,
         contract,
         {
@@ -143,7 +158,26 @@ export function ClaimAirdrop() {
       setAlreadyClaimed(true);
       setStatus(`Claim successful. Native INJ sent to ${address} (${result.transactionHash}).`);
     } catch (err) {
-      setLocalError(err instanceof Error ? err.message : "Claim failed");
+      const message = err instanceof Error ? err.message : String(err);
+
+      if (/already claimed/i.test(message)) {
+        setAlreadyClaimed(true);
+        setLocalError(null);
+        setStatus("You already claimed this campaign. Native INJ was sent to your wallet.");
+        return;
+      }
+
+      // Tx may have succeeded even if CosmJS failed parsing the broadcast response.
+      try {
+        if (await syncClaimStatus()) {
+          setStatus("Claim successful. Native INJ was sent to your wallet.");
+          return;
+        }
+      } catch {
+        // Fall through to the original error.
+      }
+
+      setLocalError(message);
     } finally {
       setBusy(false);
     }
@@ -210,7 +244,20 @@ export function ClaimAirdrop() {
           </p>
         )}
 
-        {eligibility ? (
+        {alreadyClaimed && eligibility && (
+          <div
+            className="card"
+            style={{ padding: 16, background: "rgba(61, 214, 140, 0.08)", borderColor: "rgba(61, 214, 140, 0.35)" }}
+          >
+            <strong style={{ color: "var(--success)" }}>Already claimed</strong>
+            <p style={{ margin: "8px 0 0" }}>
+              You received <strong>{amountDisplay}</strong> from campaign #{campaignId}. Try another campaign ID (e.g.{" "}
+              4, 5, or 6) to claim again.
+            </p>
+          </div>
+        )}
+
+        {eligibility && !alreadyClaimed ? (
           <div
             className="card"
             style={{ padding: 16, background: "rgba(61, 214, 140, 0.08)", borderColor: "rgba(61, 214, 140, 0.35)" }}
@@ -225,10 +272,10 @@ export function ClaimAirdrop() {
             <button
               className="btn btn-primary"
               style={{ marginTop: 16 }}
-              disabled={!isConnected || busy || alreadyClaimed}
+              disabled={!isConnected || busy}
               onClick={handleClaim}
             >
-              {alreadyClaimed ? "Already claimed" : busy ? "Claiming..." : "Claim native INJ"}
+              {busy ? "Claiming..." : "Claim native INJ"}
             </button>
           </div>
         ) : (

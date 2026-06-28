@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ClaimAirdrop } from "@/components/ClaimAirdrop";
 import { CreateAirdrop } from "@/components/CreateAirdrop";
+import { SetupStatus } from "@/components/SetupStatus";
 import { WalletButton } from "@/components/WalletButton";
 
 type Tab = "create" | "claim";
@@ -24,6 +25,8 @@ export default function HomePage() {
       </header>
 
       <section className="container" style={{ padding: "28px 0 48px" }}>
+        <SetupStatus />
+
         <div style={{ display: "flex", gap: 12, marginBottom: 20, flexWrap: "wrap" }}>
           <button
             className={`btn ${tab === "create" ? "btn-primary" : "btn-secondary"}`}
@@ -47,8 +50,9 @@ export default function HomePage() {
             <li>Get testnet INJ from the <a href="https://testnet.faucet.injective.network/" target="_blank" rel="noreferrer">faucet</a> (native Cosmos INJ).</li>
             <li>Deploy CosmWasm contract: <code>npm run deploy:cosmwasm</code>.</li>
             <li>Create a campaign with Keplr (sends native INJ), download <code>merkle.json</code>, share with recipients.</li>
-            <li>Publish <code>merkle.json</code> under <code>web/public/</code> (e.g. <code>merkle-0.json</code>).</li>
-            <li>Recipients connect Keplr on <code>injective-888</code> and claim — no file upload required.</li>
+            <li>Publish <code>merkle.json</code> as <code>web/public/merkle-&lt;id&gt;.json</code> (e.g. <code>merkle-3.json</code>).</li>
+            <li>Recipients connect Keplr on <code>injective-888</code>, use the matching campaign ID, and claim.</li>
+            <li>Old campaigns #0–#2 cannot be claimed — they used a broken Merkle root. Create a new one.</li>
           </ol>
         </div>
       </section>
