@@ -1,6 +1,54 @@
 import { toHex } from "@cosmjs/encoding";
+import { injToEvm, isEvmAddress, isInjAddress } from "./address";
 import { fromBase64Padded } from "./bytes";
 import type { MerkleArtifact } from "./merkle";
+
+export type MerkleProofEntry = MerkleArtifact["proofs"][string];
+
+export function usesEvmProofKeys(artifact: MerkleArtifact): boolean {
+  const keys = Object.keys(artifact.proofs);
+  if (keys.length === 0) return false;
+  return keys.every((key) => isEvmAddress(key));
+}
+
+export function findProofEntry(
+  artifact: MerkleArtifact,
+  walletAddress: string,
+): MerkleProofEntry | null {
+  const normalized = walletAddress.trim();
+  const direct =
+    artifact.proofs[normalized] ??
+    artifact.proofs[normalized.toLowerCase()] ??
+    artifact.proofs[normalized.toUpperCase()];
+  if (direct) return direct;
+
+  try {
+    if (isInjAddress(normalized)) {
+      const evm = injToEvm(normalized).toLowerCase();
+      const viaEvm = artifact.proofs[evm];
+      if (viaEvm) return viaEvm;
+    }
+    if (isEvmAddress(normalized)) {
+      const evm = normalized.toLowerCase();
+      return artifact.proofs[evm] ?? null;
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+}
+
+export function getMerkleFormatIssue(artifact: MerkleArtifact): string | null {
+  if (usesEvmProofKeys(artifact)) {
+    return "This merkle file uses 0x addresses. Regenerate with inj1 addresses — the contract hashes your Keplr inj1 address, not 0x.";
+  }
+  const sample = Object.keys(artifact.proofs)[0];
+  if (sample && !isInjAddress(sample)) {
+    return "Merkle proof keys must be inj1 addresses matching the connected Keplr wallet.";
+  }
+  return null;
+}
 
 /** Public URL where claim proofs are hosted (no upload needed for recipients). */
 export function getMerkleUrl(campaignId: number): string {

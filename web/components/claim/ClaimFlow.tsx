@@ -98,8 +98,15 @@ export function ClaimFlow() {
           {claim.merkleRootMismatch && (
             <GlassCard className="border-danger/30">
               <p className="text-sm text-danger">
-                Campaign eligibility data is out of sync. Contact the campaign organizer.
+                The hosted merkle root does not match campaign #{claim.campaignId} on-chain. Publish
+                the correct merkle file or recreate the campaign.
               </p>
+            </GlassCard>
+          )}
+
+          {claim.merkleFormatIssue && (
+            <GlassCard className="border-danger/30">
+              <p className="text-sm text-danger">{claim.merkleFormatIssue}</p>
             </GlassCard>
           )}
 

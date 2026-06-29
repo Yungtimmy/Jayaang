@@ -6,7 +6,12 @@ import { hexToBase64 } from "@/lib/bytes";
 import { getContractAddress } from "@/lib/config";
 import type { CampaignView } from "@/lib/cosmos";
 import type { MerkleArtifact } from "@/lib/merkle";
-import { fetchMerkleArtifact, normalizeMerkleRoot } from "@/lib/merkle-loader";
+import {
+  fetchMerkleArtifact,
+  findProofEntry,
+  getMerkleFormatIssue,
+  normalizeMerkleRoot,
+} from "@/lib/merkle-loader";
 import { useWallet } from "@/lib/wallet";
 
 export function useClaimCampaign(initialCampaignId = "4") {
@@ -113,10 +118,15 @@ export function useClaimCampaign(initialCampaignId = "4") {
     return normalizeMerkleRoot(campaign.merkleRoot) !== normalizeMerkleRoot(merkleArtifact.root);
   }, [campaign, merkleArtifact]);
 
+  const merkleFormatIssue = useMemo(() => {
+    if (!merkleArtifact) return null;
+    return getMerkleFormatIssue(merkleArtifact);
+  }, [merkleArtifact]);
+
   const eligibility = useMemo(() => {
-    if (!address || !merkleArtifact || merkleRootMismatch) return null;
-    return merkleArtifact.proofs[address.toLowerCase()] ?? null;
-  }, [address, merkleArtifact, merkleRootMismatch]);
+    if (!address || !merkleArtifact || merkleRootMismatch || merkleFormatIssue) return null;
+    return findProofEntry(merkleArtifact, address);
+  }, [address, merkleArtifact, merkleRootMismatch, merkleFormatIssue]);
 
   const isCheckingEligibility = isConnected && (merkleLoading || (!merkleArtifact && !merkleLoadError));
 
@@ -144,7 +154,11 @@ export function useClaimCampaign(initialCampaignId = "4") {
   }
 
   async function handleClaim() {
-    if (!contract || !eligibility || !address) return;
+    if (!contract || !eligibility || !address || !queryClient) return;
+    if (merkleFormatIssue) {
+      setClaimError(merkleFormatIssue);
+      return;
+    }
     if (alreadyClaimed) {
       setStatus("You already claimed this campaign. Native INJ was sent to your wallet.");
       return;
@@ -154,6 +168,22 @@ export function useClaimCampaign(initialCampaignId = "4") {
     setStatus(null);
     setTxHash(null);
     try {
+      const verify = await queryClient.queryContractSmart(contract, {
+        verify_claim: {
+          campaign_id: Number(campaignId),
+          address,
+          amount: eligibility.amount,
+          proof: eligibility.proof.map((step) => hexToBase64(step)),
+        },
+      });
+      const valid = (verify as { valid: boolean }).valid;
+      if (!valid) {
+        setClaimError(
+          "Proof verification failed on-chain. The hosted merkle file does not match this campaign or your wallet. Recreate the campaign with a fresh merkle tree using inj1 addresses.",
+        );
+        return;
+      }
+
       const client = await refresh();
       const result = await client.execute(
         address,
@@ -177,6 +207,13 @@ export function useClaimCampaign(initialCampaignId = "4") {
         setAlreadyClaimed(true);
         setClaimError(null);
         setStatus("You already claimed this campaign. Native INJ was sent to your wallet.");
+        return;
+      }
+
+      if (/invalid proof/i.test(message)) {
+        setClaimError(
+          "Invalid proof: the merkle file does not match this campaign or your inj1 wallet. Regenerate merkle.json with inj1 addresses, recreate the campaign, and republish merkle-<id>.json.",
+        );
         return;
       }
 
@@ -211,6 +248,7 @@ export function useClaimCampaign(initialCampaignId = "4") {
     busy,
     alreadyClaimed,
     merkleRootMismatch,
+    merkleFormatIssue,
     eligibility,
     amountDisplay,
     claimProgress,
