@@ -9,6 +9,8 @@ web/.next/
 web/public/campaigns/*.json
 !web/public/campaigns/.gitkeep
 *.log
+*.swp
+*~
 
 # CosmWasm / Rust build output
 cosmwasm/**/target/
