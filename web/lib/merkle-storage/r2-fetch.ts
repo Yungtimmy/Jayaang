@@ -1,5 +1,6 @@
 import { AwsClient } from "aws4fetch";
 import type { MerkleStorageConfig } from "./config";
+import { formatStorageError } from "./errors";
 
 type S3Config = NonNullable<MerkleStorageConfig["s3"]>;
 
@@ -31,14 +32,19 @@ export async function r2PutObject(
   const url = objectUrl(s3, key);
   const bytes = Buffer.byteLength(body, "utf8");
 
-  const response = await client.fetch(url, {
-    method: "PUT",
-    body,
-    headers: {
-      "Content-Type": contentType,
-      "Content-Length": String(bytes),
-    },
-  });
+  let response: Response;
+  try {
+    response = await client.fetch(url, {
+      method: "PUT",
+      body,
+      headers: {
+        "Content-Type": contentType,
+        "Content-Length": String(bytes),
+      },
+    });
+  } catch (error) {
+    throw new Error(`R2 server upload network error to ${url}: ${formatStorageError(error)}`);
+  }
 
   if (!response.ok) {
     const detail = await response.text();

@@ -6,6 +6,7 @@ import {
   getMerkleProofs,
   publishMerkleProofs,
 } from "@/lib/merkle-storage";
+import { formatStorageError } from "@/lib/merkle-storage/errors";
 
 type PublishBody = {
   campaignId?: number;
@@ -86,7 +87,6 @@ export async function POST(request: Request) {
       drivers: getActiveStorageDrivers(),
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to save merkle file";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ error: formatStorageError(error) }, { status: 500 });
   }
 }
