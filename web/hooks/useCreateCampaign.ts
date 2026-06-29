@@ -5,14 +5,19 @@ import { getContractAddress } from "@/lib/config";
 import { INJECTIVE_TESTNET } from "@/lib/cosmos";
 import { hexToBase64 } from "@/lib/bytes";
 import { buildMerkleArtifact, downloadJson, parseCsv, type MerkleArtifact } from "@/lib/merkle";
+import { normalizeMerkleRoot } from "@/lib/merkle-loader";
 import { useWallet } from "@/lib/wallet";
 
 const EXAMPLE_CSV = `address,amount
 inj14rvcf3g0j8vfylws83wgnwzd2nnr4qd7nj04nt,0.004`;
 
+function isCosmjsResponseParseError(message: string): boolean {
+  return /multiple of 4|invalid string/i.test(message);
+}
+
 export function useCreateCampaign() {
   const contract = getContractAddress();
-  const { isConnected, address, refresh } = useWallet();
+  const { isConnected, address, refresh, queryClient } = useWallet();
 
   const [csv, setCsv] = useState(EXAMPLE_CSV);
   const [campaignName, setCampaignName] = useState("INJ Testnet Drop");
@@ -52,12 +57,46 @@ export function useCreateCampaign() {
     }
   }
 
+  async function verifyCampaignCreated(
+    expectedId: number,
+  ): Promise<{ created: boolean; campaignId?: number }> {
+    if (!contract || !queryClient || !artifact) return { created: false };
+
+    const countRes = await queryClient.queryContractSmart(contract, { next_campaign_id: {} });
+    const nextId = (countRes as { next_campaign_id: number }).next_campaign_id;
+    if (nextId <= expectedId) return { created: false };
+
+    const campaignId = nextId - 1;
+    const campaignRes = await queryClient.queryContractSmart(contract, {
+      get_campaign: { campaign_id: campaignId },
+    });
+    const response = campaignRes as { merkle_root: string; deposited: string; name: string };
+    if (!response.deposited || response.deposited === "0") return { created: false };
+
+    const rootMatches =
+      normalizeMerkleRoot(response.merkle_root) === normalizeMerkleRoot(artifact.root);
+    const nameMatches = response.name === campaignName;
+
+    return rootMatches && nameMatches ? { created: true, campaignId } : { created: false };
+  }
+
   async function handleCreateCampaign() {
     if (!contract || !artifact || !address) return;
     setBusy(true);
     setLocalError(null);
     setStatus(null);
     setTxHash(null);
+
+    let expectedCampaignId: number | null = null;
+    try {
+      if (queryClient) {
+        const countRes = await queryClient.queryContractSmart(contract, { next_campaign_id: {} });
+        expectedCampaignId = (countRes as { next_campaign_id: number }).next_campaign_id;
+      }
+    } catch {
+      expectedCampaignId = null;
+    }
+
     try {
       const client = await refresh();
       const expiresAt = Math.floor(Date.now() / 1000) + expiryDays * 24 * 60 * 60;
@@ -81,7 +120,25 @@ export function useCreateCampaign() {
       );
       setStep(4);
     } catch (err) {
-      setLocalError(err instanceof Error ? err.message : "Create campaign failed");
+      const message = err instanceof Error ? err.message : String(err);
+
+      if (isCosmjsResponseParseError(message) && expectedCampaignId !== null) {
+        try {
+          const verified = await verifyCampaignCreated(expectedCampaignId);
+          if (verified.created) {
+            setLocalError(null);
+            setStatus(
+              `Campaign #${verified.campaignId} created on-chain (INJ deposited). CosmJS could not parse the tx response — this is a known Injective quirk. Save merkle.json as web/public/merkle-${verified.campaignId}.json`,
+            );
+            setStep(4);
+            return;
+          }
+        } catch {
+          // Fall through to original error.
+        }
+      }
+
+      setLocalError(message);
     } finally {
       setBusy(false);
     }
