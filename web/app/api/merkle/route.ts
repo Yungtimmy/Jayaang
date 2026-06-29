@@ -6,6 +6,7 @@ import {
   getMerkleProofs,
   publishMerkleProofs,
 } from "@/lib/merkle-storage";
+import { getMerkleStorageDiag } from "@/lib/merkle-storage/diag";
 import { formatStorageError } from "@/lib/merkle-storage/errors";
 
 type PublishBody = {
@@ -35,6 +36,11 @@ function parseCampaignId(value: string | null): number | null {
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
+
+    if (searchParams.get("diag") === "1") {
+      return NextResponse.json(await getMerkleStorageDiag());
+    }
+
     const campaignId = parseCampaignId(searchParams.get("campaignId"));
 
     if (campaignId === null) {
