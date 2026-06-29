@@ -37,7 +37,8 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
 
-    if (searchParams.get("diag") === "1") {
+    const diag = searchParams.get("diag");
+    if (diag === "1" || diag === "true") {
       return NextResponse.json(await getMerkleStorageDiag());
     }
 
@@ -45,7 +46,14 @@ export async function GET(request: Request) {
 
     if (campaignId === null) {
       return NextResponse.json(
-        { error: "campaignId query param must be a non-negative integer" },
+        {
+          error: "Missing query param",
+          usage: {
+            diagnostics: "/api/merkle?diag=1",
+            fetchProofs: "/api/merkle?campaignId=3",
+          },
+          hint: "If ?diag=1 still shows this message, redeploy Vercel — latest code is not live yet.",
+        },
         { status: 400 },
       );
     }
