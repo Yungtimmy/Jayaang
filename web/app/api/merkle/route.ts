@@ -6,8 +6,11 @@ import {
   getMerkleProofs,
   publishMerkleProofs,
 } from "@/lib/merkle-storage";
+import { getMerkleStorageConfig } from "@/lib/merkle-storage/config";
 import { getMerkleStorageDiag } from "@/lib/merkle-storage/diag";
 import { formatStorageError } from "@/lib/merkle-storage/errors";
+import { isR2Endpoint } from "@/lib/merkle-storage/r2-fetch";
+import { createR2PresignedPutUrl } from "@/lib/merkle-storage/r2-presign";
 
 type PublishBody = {
   campaignId?: number;
@@ -88,6 +91,24 @@ export async function POST(request: Request) {
     const formatIssue = getMerkleFormatIssue(body.artifact);
     if (formatIssue) {
       return NextResponse.json({ error: formatIssue }, { status: 400 });
+    }
+
+    const storageConfig = getMerkleStorageConfig();
+    const useClientUpload =
+      process.env.VERCEL === "1" &&
+      storageConfig.s3?.endpoint &&
+      isR2Endpoint(storageConfig.s3.endpoint);
+
+    if (useClientUpload) {
+      const presigned = await createR2PresignedPutUrl(storageConfig.s3!, campaignId);
+      return NextResponse.json({
+        ok: true,
+        requiresClientUpload: true,
+        campaignId,
+        uploadUrl: presigned.uploadUrl,
+        publicUrl: presigned.publicUrl,
+        strategy: "client-presigned",
+      });
     }
 
     const result = await publishMerkleProofs(campaignId, body.artifact);
