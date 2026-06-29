@@ -6,28 +6,23 @@ import {
 } from "@aws-sdk/client-s3";
 import type { MerkleArtifact } from "../merkle";
 import { MERKLE_INDEX_KEY, merkleObjectKey, type MerkleStorageConfig } from "./config";
+import { isR2Endpoint, r2GetObject, r2PutObject } from "./r2-fetch";
 import type { MerkleIndex } from "./types";
 
-function createClient(s3: NonNullable<MerkleStorageConfig["s3"]>): S3Client {
-  const isR2 = s3.endpoint?.includes("r2.cloudflarestorage.com") ?? false;
-
+function createAwsSdkClient(s3: NonNullable<MerkleStorageConfig["s3"]>): S3Client {
   const config: S3ClientConfig = {
     region: s3.region,
     credentials: {
       accessKeyId: s3.accessKeyId,
       secretAccessKey: s3.secretAccessKey,
     },
-    // R2 rejects AWS SDK default flexible checksums on some runtimes (Vercel/Node).
     requestChecksumCalculation: "WHEN_REQUIRED",
     responseChecksumValidation: "WHEN_REQUIRED",
   };
 
   if (s3.endpoint) {
     config.endpoint = s3.endpoint;
-    // Cloudflare R2 docs use virtual-hosted style; path-style is for MinIO/other S3.
-    if (!isR2) {
-      config.forcePathStyle = true;
-    }
+    config.forcePathStyle = true;
   }
 
   return new S3Client(config);
@@ -56,17 +51,61 @@ async function readBody(stream: unknown): Promise<string> {
   return new TextDecoder().decode(merged);
 }
 
+function useR2Fetch(s3: NonNullable<MerkleStorageConfig["s3"]>): boolean {
+  return isR2Endpoint(s3.endpoint);
+}
+
+async function putObject(
+  s3: NonNullable<MerkleStorageConfig["s3"]>,
+  key: string,
+  body: string,
+  contentType: string,
+  cacheControl?: string,
+): Promise<void> {
+  if (useR2Fetch(s3)) {
+    await r2PutObject(s3, key, body, contentType);
+    return;
+  }
+
+  const client = createAwsSdkClient(s3);
+  await client.send(
+    new PutObjectCommand({
+      Bucket: s3.bucket,
+      Key: key,
+      Body: body,
+      ContentType: contentType,
+      ...(cacheControl ? { CacheControl: cacheControl } : {}),
+    }),
+  );
+}
+
+async function getObject(
+  s3: NonNullable<MerkleStorageConfig["s3"]>,
+  key: string,
+): Promise<string | null> {
+  if (useR2Fetch(s3)) {
+    return r2GetObject(s3, key);
+  }
+
+  const client = createAwsSdkClient(s3);
+  try {
+    const response = await client.send(
+      new GetObjectCommand({ Bucket: s3.bucket, Key: key }),
+    );
+    return readBody(response.Body);
+  } catch {
+    return null;
+  }
+}
+
 export function s3PublicUrl(s3: NonNullable<MerkleStorageConfig["s3"]>, key: string): string {
   return `${s3.publicBaseUrl}/${key}`;
 }
 
 export async function readS3Index(s3: NonNullable<MerkleStorageConfig["s3"]>): Promise<MerkleIndex> {
-  const client = createClient(s3);
   try {
-    const response = await client.send(
-      new GetObjectCommand({ Bucket: s3.bucket, Key: MERKLE_INDEX_KEY }),
-    );
-    const raw = await readBody(response.Body);
+    const raw = await getObject(s3, MERKLE_INDEX_KEY);
+    if (!raw) return {};
     return JSON.parse(raw) as MerkleIndex;
   } catch {
     return {};
@@ -77,17 +116,8 @@ export async function writeS3Index(
   s3: NonNullable<MerkleStorageConfig["s3"]>,
   index: MerkleIndex,
 ): Promise<void> {
-  const client = createClient(s3);
   const body = JSON.stringify(index, null, 2);
-  await client.send(
-    new PutObjectCommand({
-      Bucket: s3.bucket,
-      Key: MERKLE_INDEX_KEY,
-      Body: body,
-      ContentType: "application/json",
-      CacheControl: "no-cache",
-    }),
-  );
+  await putObject(s3, MERKLE_INDEX_KEY, body, "application/json", "no-cache");
 }
 
 export async function publishS3(
@@ -95,28 +125,30 @@ export async function publishS3(
   campaignId: number,
   artifact: MerkleArtifact,
 ): Promise<string> {
-  const client = createClient(s3);
   const key = merkleObjectKey(campaignId);
   const body = JSON.stringify(artifact, null, 2);
 
-  await client.send(
-    new PutObjectCommand({
-      Bucket: s3.bucket,
-      Key: key,
-      Body: body,
-      ContentType: "application/json",
-      CacheControl: "public, max-age=31536000, immutable",
-    }),
+  await putObject(
+    s3,
+    key,
+    body,
+    "application/json",
+    "public, max-age=31536000, immutable",
   );
 
   const url = s3PublicUrl(s3, key);
-  const index = await readS3Index(s3);
-  index[String(campaignId)] = {
-    ...index[String(campaignId)],
-    s3: url,
-    updatedAt: new Date().toISOString(),
-  };
-  await writeS3Index(s3, index);
+
+  try {
+    const index = await readS3Index(s3);
+    index[String(campaignId)] = {
+      ...index[String(campaignId)],
+      s3: url,
+      updatedAt: new Date().toISOString(),
+    };
+    await writeS3Index(s3, index);
+  } catch {
+    // Merkle file uploaded; index is optional metadata.
+  }
 
   return url;
 }
@@ -125,15 +157,9 @@ export async function getS3(
   s3: NonNullable<MerkleStorageConfig["s3"]>,
   campaignId: number,
 ): Promise<MerkleArtifact | null> {
-  const client = createClient(s3);
   try {
-    const response = await client.send(
-      new GetObjectCommand({
-        Bucket: s3.bucket,
-        Key: merkleObjectKey(campaignId),
-      }),
-    );
-    const raw = await readBody(response.Body);
+    const raw = await getObject(s3, merkleObjectKey(campaignId));
+    if (!raw) return null;
     return JSON.parse(raw) as MerkleArtifact;
   } catch {
     return null;

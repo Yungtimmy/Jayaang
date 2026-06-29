@@ -56,7 +56,7 @@ export function getMerkleStorageConfig(): MerkleStorageConfig {
   const pinataJwt = trim(process.env.PINATA_JWT);
   const pinataGateway = trim(process.env.PINATA_GATEWAY_URL) ?? "https://gateway.pinata.cloud/ipfs";
 
-  const s3Ready = Boolean(bucket && accessKeyId && secretAccessKey);
+  const s3Ready = Boolean(bucket && accessKeyId && secretAccessKey && endpoint);
   const pinataReady = Boolean(pinataJwt);
 
   const driver = trim(process.env.MERKLE_STORAGE_DRIVER)?.toLowerCase();
