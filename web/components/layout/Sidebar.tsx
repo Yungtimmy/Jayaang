@@ -3,7 +3,6 @@
 import { motion } from "framer-motion";
 import {
   BarChart3,
-  Gift,
   LayoutDashboard,
   PlusCircle,
   Settings,
@@ -17,7 +16,6 @@ import { cn } from "@/lib/utils";
 const links = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/create", label: "Create Campaign", icon: PlusCircle },
-  { href: "/claim", label: "Claim Tokens", icon: Gift },
   { href: "/dashboard#analytics", label: "Analytics", icon: BarChart3 },
 ];
 

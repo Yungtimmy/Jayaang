@@ -32,11 +32,6 @@ export function Footer() {
                   Create Campaign
                 </Link>
               </li>
-              <li>
-                <Link href="/claim" className="hover:text-white">
-                  Claim Tokens
-                </Link>
-              </li>
             </ul>
           </div>
 

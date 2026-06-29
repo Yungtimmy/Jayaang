@@ -45,6 +45,9 @@ export function CampaignTable({ campaigns, loading }: CampaignTableProps) {
     <GlassCard padding="none" className="overflow-hidden">
       <div className="border-b border-white/[0.06] px-6 py-4">
         <h3 className="font-semibold">Campaigns</h3>
+        <p className="mt-1 text-xs text-muted">
+          Connect Keplr and use Claim on a campaign to check eligibility and receive INJ.
+        </p>
       </div>
       <div className="overflow-x-auto scrollbar-thin">
         <table className="w-full text-sm">
@@ -92,7 +95,7 @@ export function CampaignTable({ campaigns, loading }: CampaignTableProps) {
                   <td className="px-6 py-4">
                     <Link
                       href={`/claim?campaign=${c.id}`}
-                      className="inline-flex items-center gap-1 text-primary hover:underline"
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-primary/30 bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary transition-colors hover:bg-primary/20"
                     >
                       Claim <ExternalLink className="h-3 w-3" />
                     </Link>
