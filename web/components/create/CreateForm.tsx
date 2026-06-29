@@ -30,6 +30,7 @@ export function CreateForm() {
     localError,
     status,
     txHash,
+    createdCampaignId,
     busy,
     step,
     setStep,
@@ -189,8 +190,10 @@ export function CreateForm() {
                 <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-success/20">
                   <Check className="h-7 w-7 text-success" />
                 </div>
-                <h3 className="mt-4 font-semibold text-success">Campaign Created!</h3>
-                <p className="mt-2 text-sm text-muted">{status}</p>
+                <h3 className="mt-4 font-semibold text-success">Campaign created successfully</h3>
+                {createdCampaignId !== null && (
+                  <p className="mt-2 text-sm text-muted">Campaign #{createdCampaignId} is live.</p>
+                )}
                 {txHash && (
                   <a
                     href={`https://testnet.mintscan.io/injective/tx/${txHash}`}

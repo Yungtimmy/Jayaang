@@ -1,14 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import {
-  BarChart3,
-  LayoutDashboard,
-  PlusCircle,
-  Settings,
-  BookOpen,
-  X,
-} from "lucide-react";
+import { LayoutDashboard, PlusCircle, Settings, BookOpen, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -16,7 +9,6 @@ import { cn } from "@/lib/utils";
 const links = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/create", label: "Create Campaign", icon: PlusCircle },
-  { href: "/dashboard#analytics", label: "Analytics", icon: BarChart3 },
 ];
 
 type SidebarProps = {
