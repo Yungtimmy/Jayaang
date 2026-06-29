@@ -1,8 +1,11 @@
-import { mkdir, writeFile } from "fs/promises";
-import path from "path";
 import { NextResponse } from "next/server";
 import type { MerkleArtifact } from "@/lib/merkle";
 import { getMerkleFormatIssue, getMerkleUrl } from "@/lib/merkle-loader";
+import {
+  getActiveStorageDrivers,
+  getMerkleProofs,
+  publishMerkleProofs,
+} from "@/lib/merkle-storage";
 
 type PublishBody = {
   campaignId?: number;
@@ -19,6 +22,39 @@ function isValidArtifact(value: unknown): value is MerkleArtifact {
     artifact.proofs !== null &&
     Object.keys(artifact.proofs).length > 0
   );
+}
+
+function parseCampaignId(value: string | null): number | null {
+  if (!value) return null;
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed < 0) return null;
+  return parsed;
+}
+
+export async function GET(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const campaignId = parseCampaignId(searchParams.get("campaignId"));
+
+    if (campaignId === null) {
+      return NextResponse.json(
+        { error: "campaignId query param must be a non-negative integer" },
+        { status: 400 },
+      );
+    }
+
+    const artifact = await getMerkleProofs(campaignId);
+    if (!artifact) {
+      return NextResponse.json({ error: `Merkle proofs not found for campaign ${campaignId}` }, { status: 404 });
+    }
+
+    return NextResponse.json(artifact, {
+      headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300" },
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Failed to load merkle file";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
 }
 
 export async function POST(request: Request) {
@@ -39,19 +75,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: formatIssue }, { status: 400 });
     }
 
-    const publicDir = path.join(process.cwd(), "public");
-    await mkdir(publicDir, { recursive: true });
-
-    const filename = `merkle-${campaignId}.json`;
-    const filePath = path.join(publicDir, filename);
-
-    await writeFile(filePath, JSON.stringify(body.artifact, null, 2), "utf8");
+    const result = await publishMerkleProofs(campaignId, body.artifact);
 
     return NextResponse.json({
       ok: true,
-      campaignId,
-      filename,
-      url: getMerkleUrl(campaignId),
+      campaignId: result.campaignId,
+      filename: result.filename,
+      url: result.url || getMerkleUrl(campaignId),
+      locations: result.locations,
+      drivers: getActiveStorageDrivers(),
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to save merkle file";

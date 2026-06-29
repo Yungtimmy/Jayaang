@@ -50,8 +50,16 @@ export function getMerkleFormatIssue(artifact: MerkleArtifact): string | null {
   return null;
 }
 
+function usesMerkleApiProxy(): boolean {
+  return process.env.NEXT_PUBLIC_MERKLE_USE_API?.trim().toLowerCase() === "true";
+}
+
 /** Public URL where claim proofs are hosted (no upload needed for recipients). */
 export function getMerkleUrl(campaignId: number): string {
+  if (usesMerkleApiProxy()) {
+    return `/api/merkle?campaignId=${campaignId}`;
+  }
+
   const explicit = process.env.NEXT_PUBLIC_MERKLE_URL?.trim();
   if (explicit) return explicit;
 
