@@ -21,12 +21,36 @@ function trim(value: string | undefined): string | undefined {
   return next || undefined;
 }
 
+/** S3 API endpoint only — not the public r2.dev URL. */
+export function normalizeS3Endpoint(endpoint: string | undefined): string | undefined {
+  if (!endpoint) return undefined;
+
+  const trimmed = endpoint.trim().replace(/\/+$/, "");
+
+  if (/\.r2\.dev/i.test(trimmed)) {
+    throw new Error(
+      "AWS_S3_ENDPOINT must be the S3 API URL (https://<ACCOUNT_ID>.r2.cloudflarestorage.com), " +
+        "not the public r2.dev URL. Use AWS_S3_PUBLIC_URL for the pub-*.r2.dev address.",
+    );
+  }
+
+  const r2Match = trimmed.match(/^(https:\/\/[a-f0-9]+\.r2\.cloudflarestorage\.com)/i);
+  if (r2Match) return r2Match[1];
+
+  return trimmed;
+}
+
+export function resolveS3Region(endpoint: string | undefined, region: string): string {
+  if (endpoint?.includes("r2.cloudflarestorage.com")) return "auto";
+  return region || "us-east-1";
+}
+
 export function getMerkleStorageConfig(): MerkleStorageConfig {
   const bucket = trim(process.env.AWS_S3_BUCKET);
   const region = trim(process.env.AWS_REGION) ?? "us-east-1";
   const accessKeyId = trim(process.env.AWS_ACCESS_KEY_ID);
   const secretAccessKey = trim(process.env.AWS_SECRET_ACCESS_KEY);
-  const endpoint = trim(process.env.AWS_S3_ENDPOINT);
+  const endpoint = normalizeS3Endpoint(trim(process.env.AWS_S3_ENDPOINT));
   const publicBaseUrl = trim(process.env.AWS_S3_PUBLIC_URL);
 
   const pinataJwt = trim(process.env.PINATA_JWT);
@@ -49,7 +73,7 @@ export function getMerkleStorageConfig(): MerkleStorageConfig {
     s3: s3Ready
       ? {
           bucket: bucket!,
-          region,
+          region: resolveS3Region(endpoint, region),
           accessKeyId: accessKeyId!,
           secretAccessKey: secretAccessKey!,
           endpoint,

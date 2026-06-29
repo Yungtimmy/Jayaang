@@ -9,17 +9,25 @@ import { MERKLE_INDEX_KEY, merkleObjectKey, type MerkleStorageConfig } from "./c
 import type { MerkleIndex } from "./types";
 
 function createClient(s3: NonNullable<MerkleStorageConfig["s3"]>): S3Client {
+  const isR2 = s3.endpoint?.includes("r2.cloudflarestorage.com") ?? false;
+
   const config: S3ClientConfig = {
     region: s3.region,
     credentials: {
       accessKeyId: s3.accessKeyId,
       secretAccessKey: s3.secretAccessKey,
     },
+    // R2 rejects AWS SDK default flexible checksums on some runtimes (Vercel/Node).
+    requestChecksumCalculation: "WHEN_REQUIRED",
+    responseChecksumValidation: "WHEN_REQUIRED",
   };
 
   if (s3.endpoint) {
     config.endpoint = s3.endpoint;
-    config.forcePathStyle = true;
+    // Cloudflare R2 docs use virtual-hosted style; path-style is for MinIO/other S3.
+    if (!isR2) {
+      config.forcePathStyle = true;
+    }
   }
 
   return new S3Client(config);
